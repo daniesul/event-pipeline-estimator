@@ -1,0 +1,33 @@
+{
+  "name": "event-pipeline-estimator",
+  "private": true,
+  "version": "1.0.0",
+  "type": "module",
+  "description": "Third-Party Event Pipeline Estimator — client-side B2B event pipeline forecasting tool.",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview",
+    "typecheck": "tsc --noEmit",
+    "test": "node --experimental-strip-types --no-warnings --test \"tests/**/*.test.ts\""
+  },
+  "dependencies": {
+    "lucide-react": "^0.544.0",
+    "pdf-lib": "^1.17.1",
+    "react": "^19.1.0",
+    "react-dom": "^19.1.0"
+  },
+  "devDependencies": {
+    "@tailwindcss/vite": "^4.1.0",
+    "@types/node": "^22.0.0",
+    "@types/react": "^19.1.0",
+    "@types/react-dom": "^19.1.0",
+    "@vitejs/plugin-react": "^5.0.0",
+    "tailwindcss": "^4.1.0",
+    "typescript": "~5.9.2",
+    "vite": "^7.1.0"
+  },
+  "engines": {
+    "node": ">=20.19"
+  }
+}
