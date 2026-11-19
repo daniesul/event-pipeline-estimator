@@ -14,6 +14,7 @@ import {
 } from './lib/model';
 import { buildTextSummary, copyText } from './lib/summary';
 import { DISCLAIMER } from './lib/content';
+import { track } from './lib/analytics';
 import { Hero } from './components/Hero';
 import { SectionHeader } from './components/SectionHeader';
 import { NumberField } from './components/NumberField';
@@ -70,26 +71,45 @@ export default function App() {
   const [announcement, setAnnouncement] = useState('');
 
   // ── Updaters ────────────────────────────────────────────
-  const update = useCallback(<K extends keyof ForecastInputs>(key: K, value: ForecastInputs[K]) => {
-    setInputs((prev) => ({ ...prev, [key]: value }));
+  // First change to any input counts once per visit as estimator_start.
+  const started = useRef(false);
+  const markStarted = useCallback(() => {
+    if (started.current) return;
+    started.current = true;
+    track('estimator_start');
   }, []);
 
+  const update = useCallback(<K extends keyof ForecastInputs>(key: K, value: ForecastInputs[K]) => {
+    markStarted();
+    setInputs((prev) => ({ ...prev, [key]: value }));
+  }, [markStarted]);
+
   const toggleActivation = useCallback((id: ActivationId) => {
+    markStarted();
     setInputs((prev) => ({
       ...prev,
       activations: prev.activations.includes(id)
         ? prev.activations.filter((a) => a !== id)
         : [...prev.activations, id],
     }));
-  }, []);
+  }, [markStarted]);
 
   const setConversion = useCallback((key: keyof ConversionRates, value: number) => {
+    markStarted();
     setInputs((prev) => ({ ...prev, conversions: { ...prev.conversions, [key]: value } }));
-  }, []);
+  }, [markStarted]);
 
   const selectSponsorship = useCallback((id: SponsorshipId) => update('sponsorship', id), [update]);
+  const choosePackage = useCallback(
+    (id: SponsorshipId, from: 'selector' | 'comparison') => {
+      selectSponsorship(id);
+      track('estimator_package_select', { item_name: getSponsorship(id).name, section_name: from });
+    },
+    [selectSponsorship],
+  );
 
   const reset = () => {
+    track('estimator_reset');
     setInputs(freshDefaults());
     setAnnouncement('Calculator reset to default inputs and historical conversion rates.');
   };
@@ -100,6 +120,7 @@ export default function App() {
     try {
       const { downloadForecastPdf } = await import('./lib/pdf');
       await downloadForecastPdf(inputs, result);
+      track('estimator_pdf_download', { item_name: sponsorship.name });
       setPdfState('idle');
       setAnnouncement('Forecast PDF downloaded.');
     } catch (err) {
@@ -112,6 +133,7 @@ export default function App() {
   const copyTimer = useRef<number | undefined>(undefined);
   const handleCopy = async () => {
     const ok = await copyText(buildTextSummary(inputs, result));
+    if (ok) track('estimator_summary_copy', { item_name: sponsorship.name });
     setCopyState(ok ? 'copied' : 'error');
     setAnnouncement(ok ? 'Forecast summary copied to clipboard.' : 'Copy failed. Your browser blocked clipboard access.');
     window.clearTimeout(copyTimer.current);
@@ -211,7 +233,7 @@ export default function App() {
                 Your event footprint and the experiences you create influence how many attendees you can realistically
                 engage. Select the sponsorship level and activations that best represent your planned presence.
               </SectionHeader>
-              <SponsorshipSelector value={inputs.sponsorship} onChange={selectSponsorship} />
+              <SponsorshipSelector value={inputs.sponsorship} onChange={(id) => choosePackage(id, 'selector')} />
               <div className="border-t border-line" />
               <ActivationToggles value={inputs.activations} onToggle={toggleActivation} />
               <EngagementReadout result={result} baseRate={sponsorship.baseRate} />
@@ -253,7 +275,7 @@ export default function App() {
 
           <div className="my-8 border-t border-line" />
 
-          <ScenarioComparison inputs={inputs} onSelect={selectSponsorship} />
+          <ScenarioComparison inputs={inputs} onSelect={(id) => choosePackage(id, 'comparison')} />
 
           <div className="mt-8">
             <Methodology />

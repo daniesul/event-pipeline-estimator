@@ -1,6 +1,7 @@
 import { useId, useState } from 'react';
 import { ChevronDown } from 'lucide-react';
 import { DISCLAIMER, METHODOLOGY } from '../lib/content';
+import { track } from '../lib/analytics';
 
 export function Methodology() {
   const [open, setOpen] = useState(false);
@@ -13,7 +14,10 @@ export function Methodology() {
           type="button"
           aria-expanded={open}
           aria-controls={`${id}-panel`}
-          onClick={() => setOpen((o) => !o)}
+          onClick={() => {
+            if (!open) track('section_expand', { section_name: 'methodology' });
+            setOpen((o) => !o);
+          }}
           className="flex w-full items-center justify-between gap-4 rounded-2xl px-5 py-5 text-left text-[18px] font-medium transition-colors hover:bg-raised/50 sm:px-6"
         >
           Methodology &amp; assumptions
